@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Attendance Dashboard</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f4f4f4; }
+    input, select, button { margin: 10px 0; padding: 8px; width: 300px; }
+    button { background-color: #007BFF; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #ddd; }
+    #adminPanel { display: none; }
+  </style>
+</head>
+<body>
+
+  <h2>Admin Login</h2>
+  <input type="password" id="adminPassword" placeholder="Enter Admin Password">
+  <button onclick="login()">Login</button>
+
+  <div id="adminPanel">
+    <h2>Attendance Records</h2>
+    <label>From Date: <input type="date" id="fromDate"></label>
+    <label>To Date: <input type="date" id="toDate"></label>
+    <button onclick="filterByDate()">Apply Filter</button>
+    <button onclick="downloadCSV()">Download Filtered Report</button>
+    <table id="recordTable">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Batch ID</th>
+          <th>Candidate Name</th>
+          <th>Contact No</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyk0WRlPF6CaC4wFWd0QPSCSu-R23TCLHhbMKDbh4DAvfcIIBSjfejkQhxYDSg7fzxk/exec';
+    const adminPass = 'ael@1234';
+    let allData = [];
+
+    function login() {
+      const pwd = document.getElementById('adminPassword').value;
+      if (pwd === adminPass) {
+        document.getElementById('adminPanel').style.display = 'block';
+        fetchRecords();
+      } else {
+        alert('Incorrect password');
+      }
+    }
+
+    function fetchRecords() {
+      fetch(scriptURL)
+        .then(response => response.json())
+        .then(data => {
+          allData = data;
+          displayData(data);
+        });
+    }
+
+    function displayData(data) {
+      const tbody = document.querySelector('#recordTable tbody');
+      tbody.innerHTML = '';
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        tbody.innerHTML += `<tr>
+          <td>${row[0]}</td><td>${row[1]}</td><td>${row[2]}</td><td>${row[3]}</td><td>${row[4]}</td>
+        </tr>`;
+      }
+    }
+
+    function filterByDate() {
+      const from = new Date(document.getElementById('fromDate').value);
+      const to = new Date(document.getElementById('toDate').value);
+      const filtered = [allData[0]];
+
+      for (let i = 1; i < allData.length; i++) {
+        const recordDate = new Date(allData[i][0]);
+        if (recordDate >= from && recordDate <= to) {
+          filtered.push(allData[i]);
+        }
+      }
+      displayData(filtered);
+    }
+
+    function downloadCSV() {
+      const rows = [['Timestamp','Batch ID','Candidate Name','Contact No','Status']];
+      const trs = document.querySelectorAll('#recordTable tbody tr');
+      trs.forEach(tr => {
+        const cells = tr.querySelectorAll('td');
+        rows.push(Array.from(cells).map(td => td.innerText));
+      });
+      const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'filtered_attendance.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  </script>
+
+  <!-- Back Link -->
+<br><br>
+<a href="index.html" style="color: #007BFF; font-weight: bold;">⬅️ Back to Homepage</a>
+
+</body>
+</html>

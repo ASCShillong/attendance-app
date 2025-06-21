@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Student Attendance</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #eef; }
+    input, select, button { display: block; margin: 10px 0; padding: 8px; width: 100%; max-width: 300px; }
+    button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #45a049; }
+    #successMsg, #geoError, #timeError { margin-top: 10px; display: none; font-weight: bold; }
+    #successMsg { color: green; }
+    #geoError, #timeError { color: red; }
+  </style>
+</head>
+<body>
+  <h2>Student Attendance</h2>
+  <input type="datetime-local" id="timestamp" readonly>
+  <select id="batchId">
+    <option value="">Select Batch</option>
+    <option value="Batch-1">Batch-1</option>
+    <option value="Batch-2">Batch-2</option>
+    <option value="Batch-3">Batch-3</option>
+  </select>
+  <input type="text" id="name" placeholder="Candidate Name">
+  <input type="tel" id="contact" placeholder="Contact Number">
+  <select id="status">
+    <option value="Present">Present</option>
+    <option value="Absent">Absent</option>
+  </select>
+  <button onclick="submitAttendance()">Submit Attendance</button>
+  <div id="successMsg">Your attendance was recorded successfully.</div>
+  <div id="geoError">You must be at the training center to submit attendance.</div>
+  <div id="timeError">Attendance submission is closed after 10:45 AM.</div>
+
+  <!-- Back Link -->
+  <br><br>
+  <a href="index.html" style="color: #007BFF; font-weight: bold;">⬅️ Back to Homepage</a>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbyk0WRlPF6CaC4wFWd0QPSCSu-R23TCLHhbMKDbh4DAvfcIIBSjfejkQhxYDSg7fzxk/exec';
+    const centerLat = 25.565027, centerLong = 91.874592;
+
+    window.onload = () => {
+      autoFillTimestamp();
+      setInterval(autoFillTimestamp, 10000);
+    };
+
+    function autoFillTimestamp() {
+      const now = new Date();
+      const tzOffset = now.getTimezoneOffset() * 60000;
+      const localTime = new Date(now - tzOffset).toISOString().slice(0, 16);
+      document.getElementById('timestamp').value = localTime;
+    }
+
+    function submitAttendance() {
+      const now = new Date();
+      const tenFortyFive = new Date(); tenFortyFive.setHours(10, 45, 0, 0);
+      if (now > tenFortyFive) {
+        document.getElementById('timeError').style.display = 'block';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const dist = getDistance(position.coords.latitude, position.coords.longitude, centerLat, centerLong);
+          if (dist > 100) {
+            document.getElementById('geoError').style.display = 'block';
+            return;
+          }
+
+          const data = {
+            Timestamp: document.getElementById('timestamp').value,
+            Batch_ID: document.getElementById('batchId').value,
+            Candidate_Name: document.getElementById('name').value,
+            Contact_No: document.getElementById('contact').value,
+            Status: document.getElementById('status').value
+          };
+
+          fetch(scriptURL, {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: { 'Content-Type': 'application/json' }
+          })
+          .then(res => res.text())
+          .then(res => {
+            document.getElementById('successMsg').style.display = 'block';
+            document.getElementById('geoError').style.display = 'none';
+            document.getElementById('timeError').style.display = 'none';
+          });
+        },
+        () => alert("Location access is required.")
+      );
+    }
+
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3, toRad = deg => deg * (Math.PI / 180);
+      const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+  </script>
+</body>
+</html>
