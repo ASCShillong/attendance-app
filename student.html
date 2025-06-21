@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,9 +7,13 @@
     input, select, button { display: block; margin: 10px 0; padding: 8px; width: 100%; max-width: 300px; }
     button { background-color: #4CAF50; color: white; border: none; cursor: pointer; }
     button:hover { background-color: #45a049; }
-    #successMsg, #geoError, #timeError { margin-top: 10px; display: none; font-weight: bold; }
+    #successMsg, #geoError, #timeError, #failMsg {
+      margin-top: 10px;
+      display: none;
+      font-weight: bold;
+    }
     #successMsg { color: green; }
-    #geoError, #timeError { color: red; }
+    #failMsg, #geoError, #timeError { color: red; }
   </style>
 </head>
 <body>
@@ -29,16 +32,18 @@
     <option value="Absent">Absent</option>
   </select>
   <button onclick="submitAttendance()">Submit Attendance</button>
-  <div id="successMsg">Your attendance was recorded successfully.</div>
-  <div id="geoError">You must be at the training center to submit attendance.</div>
-  <div id="timeError">Attendance submission is closed after 10:45 AM.</div>
+
+  <div id="successMsg">✅ Your attendance was recorded successfully.</div>
+  <div id="failMsg">❌ Student not found. Please contact admin.</div>
+  <div id="geoError">📍 You must be at the training center to submit attendance.</div>
+  <div id="timeError">⏰ Attendance submission is closed after 10:45 AM.</div>
 
   <!-- Back Link -->
   <br><br>
   <a href="index.html" style="color: #007BFF; font-weight: bold;">⬅️ Back to Homepage</a>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbyk0WRlPF6CaC4wFWd0QPSCSu-R23TCLHhbMKDbh4DAvfcIIBSjfejkQhxYDSg7fzxk/exec';
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwyWPZJ2LP3vGzc83g-eFYegrtHAF8h6S_wvQlAhsCMEYl8ZL4GuTFDtuJJOqutqC7A/exec';
     const centerLat = 25.565027, centerLong = 91.874592;
 
     window.onload = () => {
@@ -84,13 +89,22 @@
           })
           .then(res => res.text())
           .then(res => {
-            document.getElementById('successMsg').style.display = 'block';
-            document.getElementById('geoError').style.display = 'none';
-            document.getElementById('timeError').style.display = 'none';
+            if (res.trim().toLowerCase() === "success") {
+              showMsg('successMsg');
+            } else {
+              showMsg('failMsg');
+            }
           });
         },
         () => alert("Location access is required.")
       );
+    }
+
+    function showMsg(id) {
+      ['successMsg', 'failMsg', 'geoError', 'timeError'].forEach(e => {
+        document.getElementById(e).style.display = 'none';
+      });
+      document.getElementById(id).style.display = 'block';
     }
 
     function getDistance(lat1, lon1, lat2, lon2) {
