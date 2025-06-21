@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -20,10 +21,7 @@
   <h2>Student Attendance</h2>
   <input type="datetime-local" id="timestamp" readonly>
   <select id="batchId">
-    <option value="">Select Batch</option>
-    <option value="Batch-1">Batch-1</option>
-    <option value="Batch-2">Batch-2</option>
-    <option value="Batch-3">Batch-3</option>
+    <option value="">Loading batches...</option>
   </select>
   <input type="text" id="name" placeholder="Candidate Name">
   <input type="tel" id="contact" placeholder="Contact Number">
@@ -38,17 +36,17 @@
   <div id="geoError">📍 You must be at the training center to submit attendance.</div>
   <div id="timeError">⏰ Attendance submission is closed after 10:45 AM.</div>
 
-  <!-- Back Link -->
   <br><br>
   <a href="index.html" style="color: #007BFF; font-weight: bold;">⬅️ Back to Homepage</a>
 
   <script>
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbwyWPZJ2LP3vGzc83g-eFYegrtHAF8h6S_wvQlAhsCMEYl8ZL4GuTFDtuJJOqutqC7A/exec';
+    const apiBase = 'https://script.google.com/macros/library/d/1kYZWIFonOZWYATEXKPJMqq_FappP4tL1IrQmezJWfdY3Yz0gzD08t4bv/1';
     const centerLat = 25.565027, centerLong = 91.874592;
 
     window.onload = () => {
       autoFillTimestamp();
       setInterval(autoFillTimestamp, 10000);
+      loadBatchIDs();
     };
 
     function autoFillTimestamp() {
@@ -56,6 +54,25 @@
       const tzOffset = now.getTimezoneOffset() * 60000;
       const localTime = new Date(now - tzOffset).toISOString().slice(0, 16);
       document.getElementById('timestamp').value = localTime;
+    }
+
+    function loadBatchIDs() {
+      fetch(apiBase + '?type=batches')
+        .then(res => res.json())
+        .then(batches => {
+          const select = document.getElementById("batchId");
+          select.innerHTML = '<option value="">Select Batch</option>';
+          batches.forEach(batch => {
+            const opt = document.createElement("option");
+            opt.value = batch;
+            opt.textContent = batch;
+            select.appendChild(opt);
+          });
+        })
+        .catch(() => {
+          const select = document.getElementById("batchId");
+          select.innerHTML = '<option value="">Failed to load batches</option>';
+        });
     }
 
     function submitAttendance() {
@@ -82,7 +99,7 @@
             Status: document.getElementById('status').value
           };
 
-          fetch(scriptURL, {
+          fetch(apiBase, {
             method: 'POST',
             body: JSON.stringify(data),
             headers: { 'Content-Type': 'application/json' }
